@@ -160,7 +160,7 @@ function newChar:mousepressed(x, y, b)
         if box(x, y, 62*4, 114*4, 59*4, 15*4) then
             serverID:send(json.encode({
                 type = "newChar",
-                accountNr = editAccount,
+                charNr = editAccount,
                 name = labels[1].text,
                 class = classes[class].Name,
                 race = races[race].Name
