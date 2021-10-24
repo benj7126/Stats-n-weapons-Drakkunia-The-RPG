@@ -69,7 +69,7 @@ end
 --overideFuction
 function onReceive(data)
     if data.message == "loadPlayer" then
-        accounts[data.charNr] = {name = data.name, class = data.class, race = data.races, level = data.level}
+        accounts[data.charNr] = {name = data.char.name, class = data.char.class, race = data.char.race, level = data.char.level}
     elseif data.message == "openGame" then
         St8.remove(account)
         St8.push(require"MainGame")

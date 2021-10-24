@@ -54,6 +54,7 @@ function love.update(dt)
     while event do
         if event.type == "receive" then 
             data = json.decode(event.data)
+            print(event.data)
             if data.message == "kick" then
                 doQuit = true
             end

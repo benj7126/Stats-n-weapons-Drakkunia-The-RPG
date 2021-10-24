@@ -3,10 +3,10 @@ local Account = {}
 function Account:new(event, data, id)
     local o = {}   -- create object if user does not provide one
 
-    if #data.username < 5 or #data.password < 5 then
+    if #data.username < 4 or #data.password < 4 then
         event.peer:send(json.encode({
             message = "error",
-            error = "That name is already taken"
+            error = "Password and Username both needs to be at least 4 characters long"
         }))
         return nil
     end
@@ -15,8 +15,17 @@ function Account:new(event, data, id)
     o.password = data.password
     o.currentChar = 0
     o.id = id
-    o.chars = {}
+    o.chars = {
+        {name = ""},
+        {name = ""},
+        {name = ""}
+    }
     o.currentUserConnected = event.peer
+
+    o.currentUserConnected:send(json.encode({ -- and login
+        message = "login",
+        id = id
+    }))
 
     setmetatable(o, self)
     self.__index = self
@@ -25,9 +34,11 @@ end
 
 function Account:login(event, data)
     if self.password == data.password then
-        self.currentUserConnected:send(json.encode({ -- kick current user
-            message = "kick"
-        }))
+        if self.currentUserConnected then
+            self.currentUserConnected:send(json.encode({ -- kick current user
+                message = "kick"
+            }))
+        end
 
         self.currentUserConnected = event.peer -- and set it to the new one
         
@@ -56,15 +67,26 @@ end
 
 function Account:loadChar(charNr)
     self.currentChar = charNr
-    event.peer:send(json.encode({
+    self.currentUserConnected:send(json.encode({
         message = "loadPlayer",
         charNr = charNr,
-        char = self.chars[charNr]
+        char = self:getConvertedChar(charNr)
     }))
 end
 
+function Account:getConvertedChar(charIndex) -- ready for send so it dosent send any userdata
+    local char = {}
+    for key, value in pairs(self.chars[charIndex]) do
+        if key ~= "accountForChar" then
+            char[key] = value
+        end
+    end
+    return char
+end
+
 function Account:newChar(data)
-    self.chars[data.accountNr] = {
+    print(data.charNr)
+    self.chars[data.charNr] = {
         name = data.name,
         class = data.class,
         race = data.race,
@@ -97,3 +119,5 @@ function Account:newChar(data)
         }
     }
 end
+
+return Account
