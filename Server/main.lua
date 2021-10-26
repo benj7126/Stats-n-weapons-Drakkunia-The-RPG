@@ -111,7 +111,49 @@ function love.update(dt)
                     end
                 end
             elseif data.type == "move" then
-                
+                local account = getAccountByPeer(event.peer)
+                if account then
+                    local char = account:getChar()
+                    if char then
+                        local move = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
+                        local floor = char.pos.floor
+
+                        if data.dir ~= 0 and data.dir ~= -1 then
+                            print(data.dir)
+                            print(move[data.dir][1], move[data.dir][2])
+                            local tile = allFloors[floor]:getTile(char.pos.x+move[data.dir][1], char.pos.y+move[data.dir][2])
+                            if tile then
+                                if tile.passable then
+                                    local tileStand = allFloors[floor]:getTile(char.pos.x, char.pos.y)
+                                    for i, charFromTile in pairs(tileStand.plrsOnTile) do
+                                        if account.id.."-"..account.charNr == charFromTile then
+                                            table.remove(tileStand.plrsOnTile, i)
+                                        end
+                                    end
+                                    table.insert(tile.plrsOnTile, account.id.."-"..account.charNr)
+                                    char.pos.x = char.pos.x+move[data.dir][1]
+                                    char.pos.y = char.pos.y+move[data.dir][2]
+                                end
+                            end
+                        end
+
+                        local TilesToSend = {}
+
+                        for x = -4, 4 do
+                            for y = -4, 4 do
+                                local tile = allFloors[floor]:getTile(char.pos.x+x, char.pos.y+y)
+                                if tile then
+                                    table.insert(TilesToSend, {x=char.pos.x+x, y=char.pos.y+y, tile=tile})
+                                end
+                            end
+                        end
+                        account.currentUserConnected:send(json.encode({
+                            message = "move",
+                            tiles = TilesToSend,
+                            pos = {x=char.pos.x, y=char.pos.y}
+                        }))
+                    end
+                end
             end
         end
         event = host:service()

@@ -15,44 +15,49 @@ blockSize = 32
 contents, size = love.filesystem.read("map.map")
 map = json.decode(contents or "[]")
 
-if #map == 0 then
-    for x = -50, 50 do
-        map[x] = {}
-        for y = -50, 50 do
-            map[x][y] = {
-                battleActive = false,
-                imageID = 0, -- only important for client, cuz... who need the server to show the map..?
-                npc = 0, -- if there should be an npc, like maby an shop or a quest or anything along the lines...
-                monsters = {} -- for the 1-3 monsters when the battle starts
-            }
-        end
-    end
-end
+map = {}
 
 xPosP, yPosP = w/2, h/4
 
 function MainGame:draw()
+    local xm, ym = love.mouse.getPosition()
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(backgroundIMG, 0, 0, 0, 4)
     
     for x = -10, 10 do
         for y = -10, 10 do
-            if map[plrPos[1]+x][plrPos[2]+y].imageID ~= 0 then
-                local xP, yP = x*blockSize+w/2-blockSize/2, y*blockSize+h/2-blockSize/2
-                love.graphics.setColor(1, 1, 1)
-                if #map[plrPos[1]+x][plrPos[2]+y].monsters > 0 then
-                    love.graphics.setColor(1, 0, 0)
+            if map[plrPos[1]+x] then
+                if map[plrPos[1]+x][plrPos[2]+y] then
+                    if map[plrPos[1]+x][plrPos[2]+y].imageID ~= 0 then
+                        local xP, yP = x*blockSize+w/2-blockSize/2, y*blockSize+h/2-blockSize/2
+                        love.graphics.setColor(1, 1, 1)
+                        if #map[plrPos[1]+x][plrPos[2]+y].monstersOnTle > 0 then
+                            love.graphics.setColor(1, 0, 0)
+                        end
+                        if map[plrPos[1]+x][plrPos[2]+y].battleActive == true then
+                            love.graphics.setColor(0, 1, 0)
+                        end
+                        if map[plrPos[1]+x][plrPos[2]+y].passable == false then
+                            love.graphics.setColor(0, 0, 1)
+                        end
+                        love.graphics.rectangle("fill", xP, yP, blockSize, blockSize)
+                        love.graphics.setColor(0, 0, 0)
+                        love.graphics.rectangle("line", xP, yP, blockSize, blockSize)
+
+                        if xm > xP and xm < xP + blockSize and ym > yP and ym < yP + blockSize then
+                            for i, v in pairs(map[plrPos[1]+x][plrPos[2]+y].plrsOnTile) do
+                                print(v)
+                                for i, vv in pairs(v) do
+                                    print(i, vv)
+                                end
+                            end
+                        end
+                    else
+                        local xP, yP = x*blockSize+w/2-blockSize/2, y*blockSize+h/2-blockSize/2
+                        love.graphics.setColor(0, 0, 0)
+                        love.graphics.rectangle("fill", xP, yP, blockSize, blockSize)
+                    end
                 end
-                if map[plrPos[1]+x][plrPos[2]+y].battleActive == true then
-                    love.graphics.setColor(0, 1, 0)
-                end
-                love.graphics.rectangle("fill", xP, yP, blockSize, blockSize)
-                love.graphics.setColor(0, 0, 0)
-                love.graphics.rectangle("line", xP, yP, blockSize, blockSize)
-            else
-                local xP, yP = x*blockSize+w/2-blockSize/2, y*blockSize+h/2-blockSize/2
-                love.graphics.setColor(0, 0, 0)
-                love.graphics.rectangle("fill", xP, yP, blockSize, blockSize)
             end
         end
     end
@@ -120,11 +125,13 @@ function onReceive(data)
         end
     elseif data.message == "move" then
         for i, v in pairs(data.tiles) do
+            if not map[v.x] then
+                map[v.x] = {}
+            end
             map[v.x][v.y] = v.tile
         end
         plrPos[1] = data.pos.x
         plrPos[2] = data.pos.y
-        plrsLastPos = data.plrs
     elseif data.message == "updateMove" then
         print("MOVEUPDATEHÆLP")
         serverID:send(json.encode({
