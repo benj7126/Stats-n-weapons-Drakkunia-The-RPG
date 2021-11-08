@@ -72,6 +72,9 @@ function Account:loadChar(charNr)
         charNr = charNr,
         char = self:getConvertedChar(charNr)
     }))
+    self.currentUserConnected:send(json.encode({
+        message = "updateMove"
+    }))
 end
 
 function Account:getConvertedChar(charIndex) -- ready for send so it dosent send any userdata

@@ -126,11 +126,11 @@ function love.update(dt)
                                 if tile.passable then
                                     local tileStand = allFloors[floor]:getTile(char.pos.x, char.pos.y)
                                     for i, charFromTile in pairs(tileStand.plrsOnTile) do
-                                        if account.id.."-"..account.charNr == charFromTile then
+                                        if account.id.."-"..account.currentChar == charFromTile then
                                             table.remove(tileStand.plrsOnTile, i)
                                         end
                                     end
-                                    table.insert(tile.plrsOnTile, account.id.."-"..account.charNr)
+                                    table.insert(tile.plrsOnTile, account.id.."-"..account.currentChar)
                                     char.pos.x = char.pos.x+move[data.dir][1]
                                     char.pos.y = char.pos.y+move[data.dir][2]
                                 end
@@ -144,6 +144,22 @@ function love.update(dt)
                                 local tile = allFloors[floor]:getTile(char.pos.x+x, char.pos.y+y)
                                 if tile then
                                     table.insert(TilesToSend, {x=char.pos.x+x, y=char.pos.y+y, tile=tile})
+                                    if data.dir ~= 0 and data.dir ~= -1 then
+                                        for _, player in pairs(tile.plrsOnTile) do
+                                            local strSplit = split(player, "-")
+                                            local account = AccountByID(strSplit[1])
+                                            print("a")
+                                            if account then
+                                                print("b")
+                                                if account.currentUserConnected and account.currentChar == strSplit[2] then
+                                                    print("Send")
+                                                    account.currentUserConnected:send(json.encode({
+                                                        message = "updateMove"
+                                                    }))
+                                                end
+                                            end
+                                        end
+                                    end
                                 end
                             end
                         end
@@ -158,6 +174,27 @@ function love.update(dt)
         end
         event = host:service()
     end
+end
+
+function AccountByID(id)
+    for _,account in pairs(accounts) do
+        print(account.id.."|", id.."|", account.id == id) -- somehow 2 ~= 2...
+        if account.id == id then
+            return account
+        end
+    end
+    return nil
+end
+
+function split(inputstr, sep)
+    if sep == nil then
+            sep = "%s"
+    end
+    local t={}
+    for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+            table.insert(t, str)
+    end
+    return t
 end
 
 function box(x, y, bx, by, bw, bh)

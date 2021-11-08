@@ -46,11 +46,12 @@ function MainGame:draw()
 
                         if xm > xP and xm < xP + blockSize and ym > yP and ym < yP + blockSize then
                             for i, v in pairs(map[plrPos[1]+x][plrPos[2]+y].plrsOnTile) do
-                                print(v)
-                                for i, vv in pairs(v) do
-                                    print(i, vv)
-                                end
+                                break
                             end
+                        end
+                        if #map[plrPos[1]+x][plrPos[2]+y].plrsOnTile > 0 then
+                            love.graphics.setColor(0, 0, 0)
+                            love.graphics.circle("fill", xP+blockSize/2, yP+blockSize/2, blockSize/3)
                         end
                     else
                         local xP, yP = x*blockSize+w/2-blockSize/2, y*blockSize+h/2-blockSize/2
@@ -69,8 +70,6 @@ function MainGame:draw()
     end
 
     
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.circle("fill", w/2, h/2, 10)
     love.graphics.setColor(0, 0.8, 0)
     love.graphics.rectangle("line", w/2-blockSize*4.5, h/2-blockSize*4.5, blockSize*9, blockSize*9)
 end
@@ -117,6 +116,7 @@ function MainGame:keypressed(key)
         end
     end
 end
+
 function onReceive(data)
     if data.message == "addChat" then
         table.insert(theChat, {data.sender, data.content})
@@ -133,6 +133,7 @@ function onReceive(data)
         plrPos[1] = data.pos.x
         plrPos[2] = data.pos.y
     elseif data.message == "updateMove" then
+        print("a")
         print("MOVEUPDATEHÆLP")
         serverID:send(json.encode({
             type = "move",
