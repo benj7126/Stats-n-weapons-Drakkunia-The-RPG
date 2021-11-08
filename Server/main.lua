@@ -2,50 +2,28 @@ enet = require "enet"
 json = require "dkjson"
 
 Account = require("serverClasses/Account")
+Floor = require("serverClasses/Floor")
+Tile = require("serverClasses/Tile")
 
-host = enet.host_create("0.0.0.0:7777")
+local host = enet.host_create("0.0.0.0:7777")
 
-accounts = {}
-monsterList = require "gameData/Monsters/AllMonsters"
+local accounts = {}
+local monsterList = require "gameData/Monsters/AllMonsters"
 
-fights = {}
+local fights = {}
 
-curID = 1
-curCharID = 1
+local curID = 1
+local curCharID = 1
 
-floors = 1
+local floors = 1
+local allFloors = {}
 
-contents, size = love.filesystem.read("map.map")
-map = json.decode(contents or "[]")
+local contents, size = love.filesystem.read("map.map")
+allFloors = json.decode(contents or "[]")
 
-if #map == 0 then
-    for floor = 1, floors do
-        map[floor] = {}
-        for x = -50, 50 do
-            map[floor][x] = {}
-            for y = -50, 50 do
-                map[floor][x][y] = {
-                    battleID = 0, -- will be assigned when a battle stats so folks can join
-                    battleActive = false, -- set to true when battle starts
-                    imageID = 1, -- only important for client, cuz... who need the server to show the map..?
-                    npc = 0, -- if there should be an npc, like maby an shop or a quest or anything along the lines...
-                    monsters = {}, -- for the 1-3 monsters when the battle starts
-                    questItemsOnEnter = {} -- idea is to use this for quests, like, generate the quest when the npc gets generated
-                    --fx go get my family ring, and then you get a ring if you enter, only if you have the quest thou. could also be something like, draw a map.
-                }
-                if math.random(1, 5) == 1 then
-                    for i = 1,math.random(1, 3) do
-                        table.insert(map[floor][x][y].monsters, 1)
-                    end
-                end
-            end
-        end
-    end
+for floor = 1, floors do
+    allFloors[floor] = Floor:new(50)
 end
-
-map[1][0][0].monsters = {}
-
-print(host)
 
 function love.update(dt)
     print(dt)
@@ -133,7 +111,49 @@ function love.update(dt)
                     end
                 end
             elseif data.type == "move" then
-                
+                local account = getAccountByPeer(event.peer)
+                if account then
+                    local char = account:getChar()
+                    if char then
+                        local move = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
+                        local floor = char.pos.floor
+
+                        if data.dir ~= 0 and data.dir ~= -1 then
+                            print(data.dir)
+                            print(move[data.dir][1], move[data.dir][2])
+                            local tile = allFloors[floor]:getTile(char.pos.x+move[data.dir][1], char.pos.y+move[data.dir][2])
+                            if tile then
+                                if tile.passable then
+                                    local tileStand = allFloors[floor]:getTile(char.pos.x, char.pos.y)
+                                    for i, charFromTile in pairs(tileStand.plrsOnTile) do
+                                        if account.id.."-"..account.charNr == charFromTile then
+                                            table.remove(tileStand.plrsOnTile, i)
+                                        end
+                                    end
+                                    table.insert(tile.plrsOnTile, account.id.."-"..account.charNr)
+                                    char.pos.x = char.pos.x+move[data.dir][1]
+                                    char.pos.y = char.pos.y+move[data.dir][2]
+                                end
+                            end
+                        end
+
+                        local TilesToSend = {}
+
+                        for x = -4, 4 do
+                            for y = -4, 4 do
+                                local tile = allFloors[floor]:getTile(char.pos.x+x, char.pos.y+y)
+                                if tile then
+                                    table.insert(TilesToSend, {x=char.pos.x+x, y=char.pos.y+y, tile=tile})
+                                end
+                            end
+                        end
+                        account.currentUserConnected:send(json.encode({
+                            message = "move",
+                            tiles = TilesToSend,
+                            pos = {x=char.pos.x, y=char.pos.y}
+                        }))
+                    end
+                end
             end
         end
         event = host:service()

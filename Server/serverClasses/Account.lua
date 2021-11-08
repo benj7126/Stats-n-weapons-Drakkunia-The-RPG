@@ -1,7 +1,7 @@
 local Account = {}
 
 function Account:new(event, data, id)
-    local o = {}   -- create object if user does not provide one
+    local o = {}
 
     if #data.username < 4 or #data.password < 4 then
         event.peer:send(json.encode({
