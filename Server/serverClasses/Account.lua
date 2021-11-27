@@ -35,14 +35,14 @@ end
 function Account:login(event, data)
     if self.password == data.password then
         if self.currentUserConnected then
-            self.currentUserConnected:send(json.encode({ -- kick current user
+            self:send(json.encode({ -- kick current user
                 message = "kick"
             }))
         end
 
         self.currentUserConnected = event.peer -- and set it to the new one
         
-        self.currentUserConnected:send(json.encode({ -- and login
+        self:send(json.encode({ -- and login
             message = "login",
             id = self.id
         }))
@@ -55,10 +55,22 @@ function Account:login(event, data)
 end
 
 function Account:quit()
-    self.currentUserConnected:send(json.encode({ -- kick current user
+    self:send(json.encode({ -- kick current user
         message = "kick"
     }))
     self.currentUserConnected = nil
+end
+
+function Account:getCharId()
+    return self.id.."-"..self.currentChar
+end
+
+function Account:send(data) -- try to send
+    if self.currentUserConnected ~= nil then
+        self.currentUserConnected:send(data)
+        return true
+    end
+    return false
 end
 
 function Account:getChar()
@@ -67,12 +79,12 @@ end
 
 function Account:loadChar(charNr)
     self.currentChar = charNr
-    self.currentUserConnected:send(json.encode({
+    self:send(json.encode({
         message = "loadPlayer",
         charNr = charNr,
         char = self:getConvertedChar(charNr)
     }))
-    self.currentUserConnected:send(json.encode({
+    self:send(json.encode({
         message = "updateMove"
     }))
 end
@@ -85,6 +97,23 @@ function Account:getConvertedChar(charIndex) -- ready for send so it dosent send
         end
     end
     return char
+end
+
+function Account:startFight(tileID)
+    print("interFIght")
+    local char = self:getChar()
+    char.combatTileID = tileID
+    char.inCombat = true
+    self:send(json.encode({
+        message = "fight"
+    }))
+
+    for _,fight in pairs(fights) do
+        if fight.tileID == tileID then
+            print("updating fight")
+            fight:updateFight() 
+        end
+    end
 end
 
 function Account:newChar(data)
@@ -109,6 +138,7 @@ function Account:newChar(data)
         },
 
         inCombat = false,
+        combatTileID = "",
 
         skills = {}, -- the skill books that you have access to fx {5, 6, 10}
         inv = {}, -- all the items you have fx {152, 31, 52}

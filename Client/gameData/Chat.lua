@@ -65,7 +65,6 @@ function chat:draw()
 end
 
 function chat:update(dt)
-    print(chatText)
     if Deleting then
         lifeQuialityDel = lifeQuialityDel - dt
         if lifeQuialityDel <= 0 then
@@ -124,6 +123,7 @@ function chat:keypressed(key)
                 end
             end
         elseif key == "return" then
+            selectedChat = false
             chat.send()
         end
         for i = 1,#availibleKeys do

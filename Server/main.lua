@@ -4,13 +4,11 @@ json = require "dkjson"
 Account = require("serverClasses/Account")
 Floor = require("serverClasses/Floor")
 Tile = require("serverClasses/Tile")
+Fight = require("serverClasses/Fight")
 
 local host = enet.host_create("0.0.0.0:7777")
 
-local accounts = {}
 local monsterList = require "gameData/Monsters/AllMonsters"
-
-local fights = {}
 
 local curID = 1
 local curCharID = 1
@@ -20,13 +18,18 @@ local allFloors = {}
 
 local contents, size = love.filesystem.read("map.map")
 allFloors = json.decode(contents or "[]")
+fights = {}
+accounts = {}
 
 for floor = 1, floors do
-    allFloors[floor] = Floor:new(50)
+    allFloors[floor] = Floor:new(50, floor)
 end
 
 function love.update(dt)
-    print(dt)
+
+    for _, fight in pairs(fights) do
+        fight:updateFight()
+    end
 
     local event = host:service(100)
     while event do
@@ -41,10 +44,10 @@ function love.update(dt)
 
             elseif data.type == "login" then
                 local found = false
-                for _, account in pairs(accounts) do
-                    if account.username == data.username then
+                for _, accountLoop in pairs(accounts) do
+                    if accountLoop.username == data.username then
                         found = true
-                        account:login(event, data)
+                        accountLoop:login(event, data)
                     end
                 end
                 if found == false then
@@ -56,9 +59,9 @@ function love.update(dt)
 
             elseif data.type == "signup" then
                 local found = false
-                for _, account in pairs(accounts) do
-                    print(account.username, _)
-                    if account.username == data.username then
+                for _, accountLoop in pairs(accounts) do
+                    print(accountLoop.username, _)
+                    if accountLoop.username == data.username then
                         print("Found")
                         found = true
                     end
@@ -101,8 +104,8 @@ function love.update(dt)
                 local account = getAccountByPeer(event.peer)
                 if account then
                     if data.content ~= "" then
-                        for _, account in pairs(accounts) do
-                            account.currentUserConnected:send(json.encode({
+                        for _, accountLoop in pairs(accounts) do
+                            accountLoop:send(json.encode({
                                 message = "addChat",
                                 sender = account:getChar().name,
                                 content = data.content
@@ -114,25 +117,24 @@ function love.update(dt)
                 local account = getAccountByPeer(event.peer)
                 if account then
                     local char = account:getChar()
-                    if char then
+                    if char and char.inCombat == false then
                         local move = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
                         local floor = char.pos.floor
 
                         if data.dir ~= 0 and data.dir ~= -1 then
-                            print(data.dir)
-                            print(move[data.dir][1], move[data.dir][2])
                             local tile = allFloors[floor]:getTile(char.pos.x+move[data.dir][1], char.pos.y+move[data.dir][2])
                             if tile then
                                 if tile.passable then
                                     local tileStand = allFloors[floor]:getTile(char.pos.x, char.pos.y)
                                     for i, charFromTile in pairs(tileStand.plrsOnTile) do
-                                        if account.id.."-"..account.currentChar == charFromTile then
+                                        if account:getCharId() == charFromTile then
                                             table.remove(tileStand.plrsOnTile, i)
                                         end
                                     end
-                                    table.insert(tile.plrsOnTile, account.id.."-"..account.currentChar)
+                                    table.insert(tile.plrsOnTile, account:getCharId())
                                     char.pos.x = char.pos.x+move[data.dir][1]
                                     char.pos.y = char.pos.y+move[data.dir][2]
+                                    tile:enter(account:getCharId())
                                 end
                             end
                         end
@@ -147,13 +149,10 @@ function love.update(dt)
                                     if data.dir ~= 0 and data.dir ~= -1 then
                                         for _, player in pairs(tile.plrsOnTile) do
                                             local strSplit = split(player, "-")
-                                            local account = AccountByID(strSplit[1])
-                                            print("a")
-                                            if account then
-                                                print("b")
-                                                if account.currentUserConnected and account.currentChar == strSplit[2] then
-                                                    print("Send")
-                                                    account.currentUserConnected:send(json.encode({
+                                            local accountSendTo = AccountByID(strSplit[1])
+                                            if accountSendTo then
+                                                if accountSendTo.currentUserConnected and tonumber(accountSendTo.currentChar) == tonumber(strSplit[2]) and account.id ~= accountSendTo.id then
+                                                    accountSendTo:send(json.encode({
                                                         message = "updateMove"
                                                     }))
                                                 end
@@ -163,7 +162,7 @@ function love.update(dt)
                                 end
                             end
                         end
-                        account.currentUserConnected:send(json.encode({
+                        account:send(json.encode({
                             message = "move",
                             tiles = TilesToSend,
                             pos = {x=char.pos.x, y=char.pos.y}
@@ -177,10 +176,9 @@ function love.update(dt)
 end
 
 function AccountByID(id)
-    for _,account in pairs(accounts) do
-        print(account.id.."|", id.."|", account.id == id) -- somehow 2 ~= 2...
-        if account.id == id then
-            return account
+    for _,accountLoop in pairs(accounts) do
+        if tonumber(accountLoop.id) == tonumber(id) then
+            return accountLoop
         end
     end
     return nil
@@ -188,7 +186,7 @@ end
 
 function split(inputstr, sep)
     if sep == nil then
-            sep = "%s"
+        sep = "%s"
     end
     local t={}
     for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
@@ -206,9 +204,9 @@ function box(x, y, bx, by, bw, bh)
 end
 
 function getAccountByPeer(peer)
-    for _, account in pairs(accounts) do
-        if account.currentUserConnected == peer then
-            return account
+    for _, accountLoop in pairs(accounts) do
+        if accountLoop.currentUserConnected == peer then
+            return accountLoop
         end
     end
     return false

@@ -1,12 +1,12 @@
 local Floor = {}
 
-function Floor:new(size)
+function Floor:new(size, floorNR)
     local o = {}
 
     for x = -size/2, size/2 do
         o[x] = {}
         for y = -size/2, size/2 do
-            o[x][y] = Tile:new(imageID or 1, npcID or 0, love.math.random(1, 9)~=1)
+            o[x][y] = Tile:new(imageID or 1, npcID or 0, love.math.random(1, 9)~=1, floorNR.."-"..x.."-"..y)
         end
     end
 
