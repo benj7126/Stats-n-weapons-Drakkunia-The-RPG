@@ -23,6 +23,7 @@ function Fight:new(charID, monsterList, tileID)
     if monsterList[3] then
         o.fightBoard[3] = monsterList[3]
     end
+    CharByID(charID).stamina = 0
     return o
 end
 
@@ -45,15 +46,24 @@ function Fight:addPlr(charID)
 end
 
 function Fight:updateFight(dt)
+<<<<<<< HEAD
     for i = 1, 3 do
         
     end
+=======
+>>>>>>> ccc0cef24b925b76b0761516f61bcfd5f864e764
     for _,charID in pairs(self.plrsInFight) do
         print("sendTo: "..charID)
         local strSplit = split(charID, "-")
-        AccountByID(strSplit[1]):send(json.encode({
+        local acc = AccountByID(strSplit[1])
+        local char = acc.chars[strSplit[2]]
+        char.hp = math.min(char.hp+char.hpRegen, char.maxHp)
+        char.mp = math.min(char.mp+char.mpRegen, char.maxHp)
+        char.stamina = math.min(char.stamina+char.staminaRegen, char.maxStamina)
+        acc:send(json.encode({
             message = "updateFight",
-            fightData = self.fightBoard
+            fightData = self.fightBoard,
+            selfStats = {char.hp, char.mp, char.stamina, char.xp, char.maxHp, char.maxMp, char.maxStamina, char.level}
         }))
     end
 end
