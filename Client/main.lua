@@ -18,6 +18,12 @@ local ShiftActive = false
 local Deleting = false
 local blink = 0
 
+local monsterList = require "gameData/Monsters/AllMonsters"
+monsters = {}
+for i = 1, #monsterList do
+    monsters[i] = require("gameData/Monsters/"..monsterList[i].."/monsterInfo")
+end
+
 accountNr = 0
 account = 0 
 
@@ -171,4 +177,14 @@ function love.quit()
         doQuit = true
         return true
     end
+end
+
+function getImageScaleForNewDimensions( image, newWidth, newHeight )
+    local currentWidth, currentHeight = image:getDimensions()
+    return ( newWidth / currentWidth ), ( newHeight / currentHeight )
+end
+
+function drawImg(img, x, y, w, h)
+    local scaleX, scaleY = getImageScaleForNewDimensions(img, w, h)
+    love.graphics.draw(img, x, y, 0, scaleX, scaleY)
 end

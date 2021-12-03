@@ -28,7 +28,7 @@ end
 function love.update(dt)
 
     for _, fight in pairs(fights) do
-        fight:updateFight()
+        fight:updateFight(dt)
     end
 
     local event = host:service(100)

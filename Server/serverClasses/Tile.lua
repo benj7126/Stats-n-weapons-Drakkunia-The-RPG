@@ -9,11 +9,16 @@ function Tile:new(imageID, npcID, passable, tileID)
         fightOnThisTile = nil,
         imageID = imageID, -- only important for client, cuz... who need the server to show the map..?
         npc = npcID, -- if there should be an npc, like maby an shop or a quest or anything along the lines...
-        monstersOnTle = {1}, -- for the 1-3 monsters when the battle starts
+        monstersOnTle = {}, -- for the 1-3 monsters when the battle starts
         itemsOnTile = {}, -- idea is to use this for quests, like, generate the quest when the npc gets generated
         plrsOnTile = {} -- the players on the tile
         --fx go get my family ring, and then you get a ring if you enter, only if you have the quest thou. could also be something like, draw a map.
     }
+
+    for i = 1, math.max(math.random(-3, 3), 0) do
+        table.insert(o.monstersOnTle, 1)
+    end
+
     setmetatable(o, self)
     self.__index = self
     return o

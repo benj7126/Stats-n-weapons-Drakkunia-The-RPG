@@ -1,15 +1,16 @@
 local monster = {
     level = 1,
+    name = "Slime",
     hp = 100,
     maxHp = 100,
     mp = 0,
     physicalDefence = 0,
     magicalDefence = 0,
     maxMp = 0,
-    stamina = 10,
+    stamina = 0,
     maxStamina = 10,
     staminaRegen = 1,
-    image = love.graphics.newImage("Slime.png"),
+    image = love.graphics.newImage("gameData/ImageAssets/Slime.png"),
     aggro = {},
     takeDamage = function(damage, type, player)
         local damageDone
