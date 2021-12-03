@@ -184,6 +184,13 @@ function AccountByID(id)
     return nil
 end
 
+function CharByID(id)
+    local strSplit = split(player, "-")
+    local account = AccountByID(strSplit[1])
+    local char = account.chars[strSplit[2]]
+    return char
+end
+
 function split(inputstr, sep)
     if sep == nil then
         sep = "%s"

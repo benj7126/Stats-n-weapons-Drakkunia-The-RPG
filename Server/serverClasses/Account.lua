@@ -127,6 +127,12 @@ function Account:newChar(data)
         hp = 0,
         mp = 0,
         stamina = 0,
+        maxHp = 100,
+        maxMp = 100,
+        maxStamina = 100,
+        hpRegen = 0,
+        mpRegen = 0,
+        staminaRegen = 10,
         xp = 0,
         level = 0, -- use this to indicate if this is first launch (and therefore set it to 1 on launch, and alos update hp, mp, stamina to their max versions)
 
