@@ -124,8 +124,8 @@ function Account:newChar(data)
         race = data.race,
         stats = require("gameData/Races/"..data.race.."/raceStats").StartingStats,
 
-        hp = 0,
-        mp = 0,
+        hp = 100,
+        mp = 100,
         stamina = 0,
         maxHp = 100,
         maxMp = 100,
@@ -147,6 +147,7 @@ function Account:newChar(data)
         combatTileID = "",
 
         skills = {}, -- the skill books that you have access to fx {5, 6, 10}
+        equippedSkills = {}, -- the skils you have equipped (max 11)
         inv = {}, -- all the items you have fx {152, 31, 52}
         equipped = { -- the items that you currently have equipped for all this stuff...
             mainHand = 0,

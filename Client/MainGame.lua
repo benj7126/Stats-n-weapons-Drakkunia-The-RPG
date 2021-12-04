@@ -145,7 +145,7 @@ function onReceive(data)
         print("r")
         if updateFight then
             print("rp")
-            updateFight(data.fightData)
+            updateFight(data)
         else
             St8.push(require"Fight")
         end

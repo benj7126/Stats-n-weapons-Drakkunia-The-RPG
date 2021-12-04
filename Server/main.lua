@@ -9,6 +9,11 @@ Fight = require("serverClasses/Fight")
 local host = enet.host_create("0.0.0.0:7777")
 
 local monsterList = require "gameData/Monsters/AllMonsters"
+monsters = {}
+for i = 1, #monsterList do
+    monsters[i] = require("gameData/Monsters/"..monsterList[i].."/monsterInfo")
+    monsters[i].image = nil
+end
 
 local curID = 1
 local curCharID = 1
@@ -113,6 +118,18 @@ function love.update(dt)
                         end
                     end
                 end
+            elseif data.type == "fightQue" then
+                local account = getAccountByPeer(event.peer)
+                if account then
+                    local char = account:getChar()
+                    if char and char.inCombat == true then
+                        for _,fight in pairs(fights) do
+                            if fight.tileID == char.combatTileID then
+                                fight:handleAction(char, data)
+                            end
+                        end
+                    end
+                end
             elseif data.type == "move" then
                 local account = getAccountByPeer(event.peer)
                 if account then
@@ -185,9 +202,10 @@ function AccountByID(id)
 end
 
 function CharByID(id)
-    local strSplit = split(player, "-")
+    print(id)
+    local strSplit = split(id, "-")
     local account = AccountByID(strSplit[1])
-    local char = account.chars[strSplit[2]]
+    local char = account.chars[tonumber(strSplit[2])]
     return char
 end
 

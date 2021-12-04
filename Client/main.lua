@@ -7,6 +7,8 @@ server = host:connect("localhost:7777")
 serverID = nil
 doQuit = false
 
+font = love.graphics.getFont()
+
 labels = {}
 curLabel = 0
 
@@ -22,6 +24,7 @@ local monsterList = require "gameData/Monsters/AllMonsters"
 monsters = {}
 for i = 1, #monsterList do
     monsters[i] = require("gameData/Monsters/"..monsterList[i].."/monsterInfo")
+    monsters[i].name = monsterList[i]
 end
 
 accountNr = 0
