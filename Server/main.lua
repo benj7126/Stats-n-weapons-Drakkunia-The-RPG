@@ -202,7 +202,6 @@ function AccountByID(id)
 end
 
 function CharByID(id)
-    print(id)
     local strSplit = split(id, "-")
     local account = AccountByID(strSplit[1])
     local char = account.chars[tonumber(strSplit[2])]

@@ -24,7 +24,8 @@ function Account:new(event, data, id)
 
     o.currentUserConnected:send(json.encode({ -- and login
         message = "login",
-        id = id
+        id = id,
+        name = data.username,
     }))
 
     setmetatable(o, self)
@@ -44,7 +45,8 @@ function Account:login(event, data)
         
         self:send(json.encode({ -- and login
             message = "login",
-            id = self.id
+            id = self.id,
+            name = self.username,
         }))
     else
         event.peer:send(json.encode({ -- wrong password

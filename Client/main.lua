@@ -1,193 +1,195 @@
-enet = require "enet"
-json = require "dkjson"
-St8 = require "st8"
+Enet = require "enet"
+Json = require "dkjson"
+UIManager = require("UI.UIManager"):new()
+LocalPlayer = require("playerClass"):new()
 
-host = enet.host_create()
-server = host:connect("localhost:7777")
-serverID = nil
-doQuit = false
+local host = Enet.host_create()
+Server = host:connect("localhost:7777")
 
-font = love.graphics.getFont()
+W, H = 1200, 600
+local activeW, activeH = love.graphics.getWidth(), love.graphics.getHeight()
 
-labels = {}
-curLabel = 0
-
-accountName = ""
-
-local availibleKeys = "abcdefghijklmnopqrstuvxyzæøå1234567890w-"
-local availibleKeysBig = "ABCDEFGHIJKLMNOPQRSTUVXYZÆØÅ1234567890W_"
-local ShiftActive = false
-local Deleting = false
-local blink = 0
+love.graphics.setDefaultFilter("nearest", "nearest")
 
 local monsterList = require "gameData/Monsters/AllMonsters"
-monsters = {}
+Monsters = {}
 for i = 1, #monsterList do
-    monsters[i] = require("gameData/Monsters/"..monsterList[i].."/monsterInfo")
-    monsters[i].name = monsterList[i]
+    Monsters[i] = require("gameData/Monsters/"..monsterList[i].."/Info")
+    Monsters[i].name = monsterList[i]
+    Monsters[i].image = love.graphics.newImage("gameData/Monsters/"..monsterList[i].."/Icon.png")
 end
 
-accountNr = 0
-account = 0 
+UIManager:append(require("UI.UIElements.LoginScreen"):new())
 
-awaitingHadleFunction = nil
+function love.resize(w, h)
+    activeW, activeH = w, h
+end
 
 function love.load()
-    love.graphics.setDefaultFilter("nearest", "nearest")
-    love.window.setMode(1200, 600, {vsync = false})
-    St8.hook()
-    St8.push(require "Startup.login")
-    St8.order("draw", "bottom")
-    St8.order("keypressed", "bottom")
-    font = love.graphics.getFont()
-    font20 = love.graphics.newFont(20)
-    font40 = love.graphics.newFont(40)
-    font60 = love.graphics.newFont(60)
-    w, h = love.graphics.getWidth(), love.graphics.getHeight()
+    love.keyboard.setKeyRepeat(true)
 end
 
 function love.update(dt)
-    blink = blink + dt
-    if blink > 0.4 then
-        blink = 0
-    end
-    if Deleting == true then
-        if curLabel ~= 0 then
-            labels[curLabel].text = string.sub(labels[curLabel].text, 1, #labels[curLabel].text-1)
-        end
-    end
-    if doQuit then
-        love.event.quit()
-    end
-    event = host:service(100)
+    local event = host:service() --host:service(100)
     while event do
-        if event.type == "receive" then 
-            data = json.decode(event.data)
+        if event.type == "receive" then
+            local data = Json.decode(event.data)
+            print(event.data)
+
             if data.message == "kick" then
-                doQuit = true
+                love.event.quit()
+            else
+                UIManager:GlobalDataFull(data)
             end
-            onReceive(data)
-        elseif event.type == "connect" then
-            serverID = event.peer
         end
         event = host:service()
     end
+
+    UIManager:update(dt)
+end
+
+function love.draw()
+    FixScale()
+
+    love.graphics.stencil(function ()
+        love.graphics.rectangle("fill", 0, 0, W, H)
+    end, "replace", 1)
+
+    love.graphics.setStencilTest("greater", 0)
+
+    UIManager:draw() -- do the main draw thing
+
+    love.graphics.setStencilTest()
+end
+
+function FixScale()
+    local wScale = activeW/W
+    local hScale = activeH/H
+
+    local wRest = 0
+    local hRest = 0
+
+    if wScale > hScale then
+        wRest = wScale - hScale
+        wScale = hScale
+    else
+        hRest = hScale - wScale
+        hScale = wScale
+    end
+
+    love.graphics.translate(W*wRest/2, H*hRest/2)
+    love.graphics.scale(wScale, hScale)
 end
 
 function onReceive(data)
     
 end
 
-function box(x, y, bx, by, bw, bh)
+function love.textinput(t)
+    UIManager:textinput(t)
+end
+
+function love.keypressed(key)
+    if key == "f11" then
+        local bool = love.window.getFullscreen()
+        
+        love.window.setFullscreen(not bool)
+
+        if bool then
+            love.resize(love.graphics.getWidth(), love.graphics.getHeight()) -- only when it goes out of fullscreen, because it dosent call it automatically
+        end
+    end
+    UIManager:keypressed(key)
+end
+
+function love.keyreleased(key)
+    UIManager:keyreleased(key)
+end
+
+function love.mousepressed(x, y, b)
+    x, y = GetScaledMousePosition()
+    UIManager:mousepressed(x, y, b)
+end
+
+function love.mousereleased(x, y, b)
+    x, y = GetScaledMousePosition()
+    UIManager:mousereleased(x, y, b)
+end
+
+function love.quit()
+    if Server then
+        Server:send(Json.encode({
+            type = "quit"
+        }))
+    end
+end
+
+function GetScaledMousePosition()
+    local wScale = activeW/W
+    local hScale = activeH/H
+
+    local wRest = 0
+    local hRest = 0
+
+    if wScale > hScale then
+        wRest = wScale - hScale
+        wScale = hScale
+    else
+        hRest = hScale - wScale
+        hScale = wScale
+    end
+
+    -- love.graphics.translate(, H*hRest/2)
+    -- love.graphics.scale(wScale, hScale)
+
+    local x, y = love.mouse.getPosition()
+
+    x, y = x-W*wRest/2, y-H*hRest/2
+    x, y = x/wScale, y/hScale
+
+    return x, y
+end
+
+function Box(x, y, bx, by, bw, bh)
     if x > bx and x < bx + bw and y > by and y < by + bh then
         return true
     end
     return false
 end
 
-function love.keypressed(key)
-    if key == "lshift" then
-        ShiftActive = true
-    elseif key == "backspace" then
-        Deleting = true
+Fonts = {
+    ["Default"] = {[12] = love.graphics.getFont()},
+}
+
+function GetFont(fontName, size)
+    if fontName == "" or fontName == nil then
+        fontName = "Default"
     end
-    if curLabel ~= 0 then
-        if labels[curLabel].limit > #labels[curLabel].text then
-            for i = 1,#availibleKeys do
-                if key == string.sub(availibleKeys, i, i) then
-                    if ShiftActive == false then
-                        labels[curLabel].text = labels[curLabel].text..string.sub(availibleKeys, i, i)
-                    else
-                        labels[curLabel].text = labels[curLabel].text..string.sub(availibleKeysBig, i, i)
-                    end
-                end
+    if size == nil then
+        size = 12
+    end
+
+    if Fonts[fontName] then
+        if Fonts[fontName][size] then
+            return Fonts[fontName][size]
+        else
+            if fontName == "Default" then
+                Fonts[fontName][size] = love.graphics.newFont(size)
+            else
+                Fonts[fontName][size] = love.graphics.newFont(fontName..".oft", size)
             end
+
+            return Fonts[fontName][size]
         end
-    end
-end
-
-function love.keyreleased(key)
-    if key == "lshift" then
-        ShiftActive = false
-    elseif key == "backspace" then
-        Deleting = false
-    end
-end
-
-function resetLable()
-    labels = {}
-    curLabel = 0
-end
-
-function drawLabel(labelID, alternativeTEXT, useFont, addCommand)
-    local label = labels[labelID]
-
-    love.graphics.setFont(useFont or font)
-    
-    local usingFont = love.graphics.getFont()
-
-    love.graphics.setColor(label.color)
-    if label.text ~= "" then
-        local text = label.text
-        if addCommand then
-            if addCommand == "hide" then
-                textLen = #text
-                text = ""
-                for i = 1, textLen do
-                    text = text.."*"
-                end
-            end
-        end
-        if curLabel == labelID then
-            text = text.."|"
-        end
-        love.graphics.printf(text, label.x, label.y-usingFont:getHeight()/2*(math.floor(usingFont:getWidth(text)/label.w)+1)+label.h/2, label.w, "center")
     else
-        love.graphics.printf(alternativeTEXT, label.x, label.y-usingFont:getHeight()/2+label.h/2, label.w, "center")
-    end
+        Fonts[fontName] = {}
 
-    love.graphics.setFont(font)
-end
-
-function love.mousepressed(x, y, b)
-    local hit = false
-    if b == 1 then
-        for i, v in pairs(labels) do
-            if v.writeable == true then
-                if box (x, y, v.x, v.y, v.w, v.h) then
-                    print(i)
-                    curLabel = i
-                    hit = true
-                end
-            end
+        if fontName == "Default" then
+            Fonts[fontName][size] = love.graphics.newFont(size)
+        else
+            Fonts[fontName][size] = love.graphics.newFont(fontName..".oft", size)
         end
+
+        return Fonts[fontName][size]
     end
-    if hit == false then
-        curLabel = 0
-    end
-end
-
-function addLabel(label)
-    table.insert(labels, label)
-    return #labels
-end
-
-function love.quit()
-    if not doQuit then
-        serverID:send(json.encode({
-            type = "quit"
-        }))
-        doQuit = true
-        return true
-    end
-end
-
-function getImageScaleForNewDimensions( image, newWidth, newHeight )
-    local currentWidth, currentHeight = image:getDimensions()
-    return ( newWidth / currentWidth ), ( newHeight / currentHeight )
-end
-
-function drawImg(img, x, y, w, h)
-    local scaleX, scaleY = getImageScaleForNewDimensions(img, w, h)
-    love.graphics.draw(img, x, y, 0, scaleX, scaleY)
 end

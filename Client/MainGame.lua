@@ -1,26 +1,25 @@
 local MainGame = {}
 
-OpenChat = false
-OpenParty = false
+local OpenChat = false
+local OpenParty = false
+local OpenBooks = false
 local backgroundIMG = love.graphics.newImage("GameBackScreen.png")
-chatText = ""
-theChat = {}
-plrsLastPos = {}
-party = {}
-textArchive = {}
-selectedChat = false
-plrPos = {0, 0}
-blockSize = 32
+local chatText = ""
+local theChat = {}
+local plrsLastPos = {}
+local party = {}
+local textArchive = {}
+local selectedChat = false
+local plrPos = {0, 0}
+local blockSize = 32
 
-contents, size = love.filesystem.read("map.map")
-map = json.decode(contents or "[]")
+local contents, size = love.filesystem.read("map.map")
+local map = json.decode(contents or "[]")
 
 map = {}
 
-xPosP, yPosP = w/2, h/4
-
 function MainGame:draw()
-    local xm, ym = love.mouse.getPosition()
+    local xm, ym = gMX, gMY
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(backgroundIMG, 0, 0, 0, 4)
     
@@ -90,6 +89,14 @@ function MainGame:keypressed(key)
         else
             St8.remove(require"gameData.Party")
             OpenParty = false
+        end
+    elseif key == "b" then
+        if not OpenBooks and selectedChat == false then
+            St8.push(require"gameData.SkillBook")
+            OpenBooks = true
+        else
+            St8.remove(require"gameData.SkillBook")
+            OpenBooks = false
         end
     end
     if selectedChat == false then
