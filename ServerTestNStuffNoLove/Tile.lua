@@ -1,4 +1,6 @@
-local Tile = {}
+local Tile = {
+    entities = {}
+}
 
 function Tile:new()
     local tile = {}
